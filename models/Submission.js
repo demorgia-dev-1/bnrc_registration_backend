@@ -1,11 +1,46 @@
-const mongoose = require("mongoose");
+
+
+const mongoose = require('mongoose');
 
 const submissionSchema = new mongoose.Schema({
-  formId: { type: mongoose.Schema.Types.ObjectId, ref: "Form" },
-  data: mongoose.Schema.Types.Mixed,
-  paymentStatus: { type: String, default: "Pending" },
-  uploadedFiles: [String],
-  createdAt: { type: Date, default: Date.now }
-});
+  form: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Form',
+    required: true,
+  },
+  responses: {
+    type: Object,
+    required: true,
+  },
+  uploadedFiles: [
+  {
+    filename: String,
+    fileId: mongoose.Schema.Types.ObjectId
+  }
+],
 
-module.exports = mongoose.model("Submission", submissionSchema);
+  paymentStatus: {
+  type: String,
+  enum: ["Pending", "Completed", "Failed", "Authorized"],
+  default: undefined,
+}
+,
+  paymentDetails: {
+    amount: { type: Number }, 
+    order_id: String,
+    payment_id: String,
+    signature: String,
+  },
+  formSnapshot: {
+    formName: { type: String },
+    fields: [{
+      name: String,
+      type: String,
+      label: String
+    }]
+  }
+}, { timestamps: true });
+
+const Submission = mongoose.model('Submission', submissionSchema);
+
+module.exports = Submission;

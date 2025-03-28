@@ -1,28 +1,42 @@
-const multer = require("multer");
-const path = require("path");
 
-// Set storage engine
-const storage = multer.diskStorage({
-  destination: "./uploads/",
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  }
+const multer = require("multer");
+const { MongoClient } = require("mongodb");
+const { GridFsStorage } = require("multer-gridfs-storage");
+
+
+const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/bnrc_registration";
+
+const client = new MongoClient(mongoURI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
 });
 
-// File validation
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = ["image/jpeg", "image/png", "application/pdf"];
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error("Invalid file type"), false);
+let upload;
+
+const connectStorage = async () => {
+  if (!upload) {
+    await client.connect();
+    const db = client.db();
+
+    const storage = new GridFsStorage({
+      db,
+      file: (req, file) => {
+        return {
+          filename: `${Date.now()}-${file.originalname}`,
+          bucketName: "uploads",
+          metadata: {
+        originalname: file.originalname,
+        fieldName: file.fieldname, // <-- ✅ Add this if missing!
+      }
+        };
+      },
+    });
+
+    upload = multer({ storage });
   }
+
+  return upload;
 };
 
-const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
-});
+module.exports = connectStorage;
 
-module.exports = upload;

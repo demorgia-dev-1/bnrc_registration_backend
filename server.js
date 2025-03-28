@@ -1,38 +1,83 @@
 
 require("dotenv").config();
-
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const bodyParser = require("body-parser");
+const multer = require("multer");
+const { MongoClient } = require("mongodb");
+const { GridFsStorage } = require("multer-gridfs-storage");
+const ExcelJS = require("exceljs");
+
 const formRoutes = require("./routes/formRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
+const receiptRoutes = require("./routes/receiptRoutes");
+const gridFsRoutes = require("./routes/gridRoutes");
+const downloadRoutes = require("./routes/downloadRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-
-// Use CORS middleware
-app.use(cors({
-  origin: "http://localhost:3000",
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true
-}));
-
-// Body Parser middleware
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-
-// MongoDB Connection
 const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/bnrc_registration";
-mongoose.connect(mongoURI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-  .then(() => console.log("MongoDB connected successfully"))
-  .catch((err) => {
-    console.error(" MongoDB connection error:", err);
+
+// Middleware
+app.use(cors({ origin: "http://localhost:3000", credentials: true }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+//  Main startup function
+async function startServer() {
+  try {
+    await mongoose.connect(mongoURI);
+    console.log("MongoDB connected (Mongoose)");
+
+    const mongoClient = new MongoClient(mongoURI);
+    await mongoClient.connect();
+    const db = mongoClient.db();
+    console.log("MongoClient connected");
+
+
+    const multer = require('multer');
+
+
+    //  Set up GridFsStorage AFTER connection is open
+    const storage = new GridFsStorage({
+      url: mongoURI,
+      options: { useNewUrlParser: true, useUnifiedTopology: true },
+      file: (req, file) => {
+        return {
+          filename: `${Date.now()}-${file.originalname}`,
+          bucketName: 'uploads',
+          metadata: {
+            fieldName: file.fieldname,
+            originalname: file.originalname
+          }
+        };
+      }
+    });
+
+    const upload = multer({ storage });
+
+    //  Attach to req
+    app.use((req, res, next) => {
+      req.upload = upload;
+      next();
+    });
+
+    // Mount routes
+    app.use("/api", formRoutes);
+    app.use("/api/payment", paymentRoutes);
+    app.use("/api", receiptRoutes);
+    app.use("/api", gridFsRoutes);
+    app.use("/api/download", downloadRoutes);
+
+    app.listen(PORT, () => {
+      console.log(` Server running on http://localhost:${PORT}`);
+    });
+
+  } catch (error) {
+    console.error(" Error starting server:", error);
     process.exit(1);
-  });
+  }
+}
 
-app.use("/api", formRoutes);
+startServer();
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
