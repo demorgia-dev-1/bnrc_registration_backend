@@ -19,7 +19,8 @@ const PORT = process.env.PORT || 5000;
 const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/bnrc_registration";
 
 // Middleware
-app.use(cors({ origin: "http://localhost:3000", credentials: true }));
+const origin = process.env.NODE_ENV=== 'production' ? "https://forms.demorgia.com" : "http://localhost:3000";
+app.use(cors({ origin , credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
