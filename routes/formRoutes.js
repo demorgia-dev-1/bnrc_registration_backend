@@ -7,6 +7,8 @@ const router = express.Router();
 const connectStorage = require("../middlewares/upload");
 const mongoose = require("mongoose");
 const authenticateToken = require("../middlewares/authentication")
+const util = require("util");
+
 
 const generatePlaceholder = (field) => {
   switch (field.type) {
@@ -86,74 +88,67 @@ router.post("/check-email", async (req, res) => {
 });
 
 
-router.post("/submit-form/:formId", async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const upload = await connectStorage();
-
-    upload.array("files", 5)(req, res, async (err) => {
-      if (err) {
-        console.error("Upload error:", err);
-        return res
-          .status(500)
-          .json({ message: "Upload error", error: err.message });
-      }
-
-      try {
-        const { formId } = req.params;
-        const responses = JSON.parse(req.body.responses);
-
-        const uploadedFiles = req.files
-  .filter((file) => file.id || file._id)
-  .map((file) => ({
-    filename: file.filename,
-    fileId: file.id || file._id,
-    fieldName: file.fieldname,
-    originalName: file.originalname,
-  }));
+router.post(
+  "/submit-form/:formId",
+  express.json({ limit: "100mb" }),
+  express.urlencoded({ limit: "100mb", extended: true }),
+  async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+     const upload = await connectStorage() 
 
 
-        const form = await Form.findById(formId).session(session);
-        if (!form) {
-          await session.abortTransaction();
-          return res.status(404).json({ message: "Form not found" });
-        }
-        const submission = new Submission({
-          form: formId,
-          responses,
-          uploadedFiles,
-        });
+    try {
+      // Convert Multer's callback-based function to a Promise
+      const uploadMiddleware = util.promisify(upload.array("files", 100));
 
-        await submission.save({ session });
+      // Wait for files to be uploaded before proceeding
+      await uploadMiddleware(req, res);
 
-        await session.commitTransaction();
-        session.endSession();
+      const { formId } = req.params;
+      const responses = JSON.parse(req.body.responses || "{}"); // Ensure responses are always valid JSON
 
-        res.status(201).json({
-          message: "Form submitted successfully",
-          submission,
-          paymentRequired: form.paymentRequired,
-        });
-      } catch (error) {
+      // Ensure files were uploaded successfully
+      const uploadedFiles = req.files?.map((file) => ({
+        filename: file.filename,
+        fileId: file.id || file._id, // Ensure file has an ID
+        fieldName: file.fieldname,
+        originalName: file.originalname,
+      })) || [];
+
+      // Fetch the form document within the transaction
+      const form = await Form.findById(formId).session(session);
+      if (!form) {
         await session.abortTransaction();
-        session.endSession();
-        console.error("Error submitting form:", error);
-        res.status(500).json({ message: "Internal Server Error", error });
+        return res.status(404).json({ message: "Form not found" });
       }
-    });
-  } catch (err) {
-    session.endSession();
-    console.error("Upload middleware setup failed:", err);
-    res
-      .status(500)
-      .json({
-        message: "Internal server error during upload setup",
-        error: err.message,
+
+      // Create a new submission record
+      const submission = new Submission({
+        form: formId,
+        responses,
+        uploadedFiles,
       });
+
+      await submission.save({ session });
+
+      // Commit the transaction
+      await session.commitTransaction();
+      session.endSession();
+
+      res.status(201).json({
+        message: "Form submitted successfully",
+        submission,
+        paymentRequired: form.paymentRequired,
+      });
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      console.error("Error submitting form:", error);
+      res.status(500).json({ message: "Internal Server Error", error });
+    }
   }
-});
+);
 
 router.get("/forms/:id", async (req, res) => {
   try {

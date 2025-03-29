@@ -23,8 +23,8 @@ const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/bnrc_regist
 const origin = process.env.NODE_ENV=== 'production' ? "https://forms.demorgia.com" : "http://localhost:3000";
 app.use(cors());
 // app.use(express.json());
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
+app.use(express.json({ limit: "100mb" }));
+app.use(express.urlencoded({ limit: "100mb", extended: true }));
 
 // app.use(express.urlencoded({ extended: true }));
    console.log("origin", origin)
@@ -57,7 +57,9 @@ async function startServer() {
       }
     });
 
-    const upload = multer({ storage });
+    const upload = multer({ storage , limits: { fileSize: 100 * 1024 * 1024 } });
+
+
 
     //  Attach to req
     app.use((req, res, next) => {
