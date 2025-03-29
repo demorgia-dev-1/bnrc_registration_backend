@@ -20,10 +20,10 @@ const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/bnrc_regist
 
 // Middleware
 const origin = process.env.NODE_ENV=== 'production' ? "https://forms.demorgia.com" : "http://localhost:3000";
-app.use(cors({ origin , credentials: true }));
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
+   console.log("origin", origin)
 //  Main startup function
 async function startServer() {
   try {
