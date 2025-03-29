@@ -13,6 +13,7 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const receiptRoutes = require("./routes/receiptRoutes");
 const gridFsRoutes = require("./routes/gridRoutes");
 const downloadRoutes = require("./routes/downloadRoutes");
+const adminAuth = require("./routes/adminAuth")
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -24,7 +25,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
    console.log("origin", origin)
-//  Main startup function
+
 async function startServer() {
   try {
     await mongoose.connect(mongoURI);
@@ -38,8 +39,6 @@ async function startServer() {
 
     const multer = require('multer');
 
-
-    //  Set up GridFsStorage AFTER connection is open
     const storage = new GridFsStorage({
       url: mongoURI,
       options: { useNewUrlParser: true, useUnifiedTopology: true },
@@ -69,6 +68,7 @@ async function startServer() {
     app.use("/api", receiptRoutes);
     app.use("/api", gridFsRoutes);
     app.use("/api/download", downloadRoutes);
+    app.use("/api/admin", adminAuth);
 
     app.listen(PORT, () => {
       console.log(` Server running on http://localhost:${PORT}`);

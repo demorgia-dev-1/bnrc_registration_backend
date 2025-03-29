@@ -6,6 +6,7 @@ const path = require("path");
 const router = express.Router();
 const connectStorage = require("../middlewares/upload");
 const mongoose = require("mongoose");
+const authenticateToken = require("../middlewares/authentication")
 
 const generatePlaceholder = (field) => {
   switch (field.type) {
@@ -40,6 +41,8 @@ router.post("/check-aadhaar", async (req, res) => {
   try {
     const { formId, aadhaar } = req.body;
 
+    if (!aadhaar) return res.json({ exists: false });
+
     const existing = await Submission.findOne({
       form: formId,
       $or: [
@@ -49,11 +52,9 @@ router.post("/check-aadhaar", async (req, res) => {
       ]
     });
 
-    if (existing) {
-      return res.json({ exists: true });
-    } else {
-      return res.json({ exists: false });
-    }
+    if (existing) return res.json({ exists: true });
+
+    return res.json({ exists: false });
   } catch (error) {
     console.error("Error checking Aadhaar:", error);
     return res.status(500).json({ error: "Internal server error" });
@@ -167,7 +168,7 @@ router.get("/forms/:id", async (req, res) => {
 });
 
 // Extend form end date
-router.put("/forms/:formId/extend", async (req, res) => {
+router.put("/forms/:formId/extend", authenticateToken, async (req, res) => {
   const { formId } = req.params;
   const { newEndDate } = req.body;
 
@@ -195,7 +196,7 @@ router.put("/forms/:formId/extend", async (req, res) => {
 });
 
 // Create new form
-router.post("/create-form", async (req, res) => {
+router.post("/create-form", authenticateToken, async (req, res) => {
   try {
     const {
       formName,
