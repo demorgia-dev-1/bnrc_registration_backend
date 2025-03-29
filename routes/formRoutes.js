@@ -160,7 +160,7 @@ router.get("/forms/:id", async (req, res) => {
     const form = await Form.findById(req.params.id);
     if (!form) return res.status(404).json({ message: "Form not found" });
 
-    res.status(200).json(form);
+    res.status(201).json(form);
   } catch (error) {
     console.error("Error fetching form:", error);
     res.status(500).json({ message: "Server error", error });
