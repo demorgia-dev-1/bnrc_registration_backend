@@ -20,12 +20,26 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/bnrc_registration";
 
-  
-if(process.env.NODE_ENV != 'production' ) {
-  app.use(cors({
-    origin: 'http://localhost:3000'
-  }))
-}
+const allowedOrigins = process.env.NODE_ENV === 'production'
+    ? ['https://forms.demorgia.com']
+    : ['http://localhost:3000'];
+
+// CORS configuration
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+}));
+
+app.options('*', cors()); 
+
 app.use(express.json({ limit: "100mb" }));
 app.use(express.urlencoded({ limit: "100mb", extended: true }));
 
