@@ -1,8 +1,8 @@
-
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const { initConnection } = require("./middlewares/upload");
 const multer = require("multer");
 const { MongoClient } = require("mongodb");
 const { GridFsStorage } = require("multer-gridfs-storage");
@@ -18,69 +18,70 @@ const adminAuth = require("./routes/adminAuth");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/bnrc_registration";
+const mongoURI =
+  process.env.MONGO_URI || "mongodb://localhost:27017/bnrc_registration";
 
-const allowedOrigins = process.env.NODE_ENV === 'production'
-    ? ['https://forms.demorgia.com']
-    : ['http://localhost:3000'];
+const allowedOrigins =
+  process.env.NODE_ENV === "production"
+    ? ["https://forms.demorgia.com"]
+    : ["http://localhost:3000"];
 
 // CORS configuration
-app.use(cors({
+app.use(
+  cors({
     origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
     },
-    methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
-}));
+    methods: ["GET", "POST", "OPTIONS", "PUT", "DELETE", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
 
-app.options('*', cors()); 
+app.options("*", cors());
 
 app.use(express.json({ limit: "100mb" }));
 app.use(express.urlencoded({ limit: "100mb", extended: true }));
 
-
 async function startServer() {
   try {
     await mongoose.connect(mongoURI);
+    await initConnection();
     console.log("MongoDB connected (Mongoose)");
 
-    const mongoClient = new MongoClient(mongoURI);
-    await mongoClient.connect();
-    const db = mongoClient.db();
-    console.log("MongoClient connected");
+    // const mongoClient = new MongoClient(mongoURI);
+    // await mongoClient.connect();
+    // const db = mongoClient.db();
+    // console.log("MongoClient connected");
 
+    // const multer = require('multer');
 
-    const multer = require('multer');
+    // const storage = new GridFsStorage({
+    //   url: mongoURI,
+    //   options: { useNewUrlParser: true, useUnifiedTopology: true },
+    //   file: (req, file) => {
+    //     return {
+    //       filename: `${Date.now()}-${file.originalname}`,
+    //       bucketName: 'uploads',
+    //       metadata: {
+    //         fieldName: file.fieldname,
+    //         originalname: file.originalname
+    //       }
+    //     };
+    //   }
+    // });
 
-    const storage = new GridFsStorage({
-      url: mongoURI,
-      options: { useNewUrlParser: true, useUnifiedTopology: true },
-      file: (req, file) => {
-        return {
-          filename: `${Date.now()}-${file.originalname}`,
-          bucketName: 'uploads',
-          metadata: {
-            fieldName: file.fieldname,
-            originalname: file.originalname
-          }
-        };
-      }
-    });
+    // const upload = multer({ storage , limits: { fileSize: 100 * 1024 * 1024 } });
 
-    const upload = multer({ storage , limits: { fileSize: 100 * 1024 * 1024 } });
-
-
-
-    //  Attach to req
-    app.use((req, res, next) => {
-      req.upload = upload;
-      next();
-    });
+    // //  Attach to req
+    // app.use((req, res, next) => {
+    //   req.upload = upload;
+    //   next();
+    // });
 
     // Mount routes
     app.use("/api", formRoutes);
@@ -93,7 +94,6 @@ async function startServer() {
     app.listen(PORT, () => {
       console.log(` Server running on http://localhost:${PORT}`);
     });
-
   } catch (error) {
     console.error(" Error starting server:", error);
     process.exit(1);
@@ -101,4 +101,3 @@ async function startServer() {
 }
 
 startServer();
-
