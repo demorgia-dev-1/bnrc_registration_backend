@@ -113,7 +113,7 @@ const uploadToGridFS = async (file) => {
         console.log(`File uploaded successfully to GridFS: ${uniqueFilename}`);
 
         // Delete temp file
-        fs.unlink(file.path, (err) => {
+        fs.unlinkSync(file.path, (err) => {
           if (err) {
             console.warn(`Warning: Could not delete temp file: ${err.message}`);
           }
