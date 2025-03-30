@@ -14,10 +14,12 @@ let upload;
 const connectStorage = async () => {
   if (!upload) {
     await client.connect();
-    const db = client.db();
+    // const db = client.db();
+   
 
     const storage = new GridFsStorage({
-      db,
+      // db,
+      url: mongoURI,
       file: async (req, file) => {
         return {
           filename: `${Date.now()}-${file.originalname}`,

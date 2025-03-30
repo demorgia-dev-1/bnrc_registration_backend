@@ -99,11 +99,19 @@ router.post(
 
 
     try {
-      // Convert Multer's callback-based function to a Promise
-      const uploadMiddleware = util.promisify(upload.array("files", 100));
+      // // Convert Multer's callback-based function to a Promise
+      // const uploadMiddleware = util.promisify(upload.array("files", 100));
 
-      // Wait for files to be uploaded before proceeding
-      await uploadMiddleware(req, res);
+      // // Wait for files to be uploaded before proceeding
+      // await uploadMiddleware(req, res);
+
+      await new Promise((resolve, reject) => {
+        upload.array("files", 100)(req, res, (err) => {
+          if (err) return reject(err);
+          resolve();
+        });
+      });
+      
 
       const { formId } = req.params;
       const responses = JSON.parse(req.body.responses || "{}"); // Ensure responses are always valid JSON
@@ -111,7 +119,7 @@ router.post(
       // Ensure files were uploaded successfully
       const uploadedFiles = req.files?.map((file) => ({
         filename: file.filename,
-        fileId: file.id || file._id, // Ensure file has an ID
+        fileId: file?.id || file?.id, // Ensure file has an ID
         fieldName: file.fieldname,
         originalName: file.originalname,
       })) || [];
