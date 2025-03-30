@@ -21,8 +21,11 @@ const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/bnrc_regist
 
 // Middleware
 const origin = process.env.NODE_ENV=== 'production' ? "https://forms.demorgia.com" : "http://localhost:3000";
-app.use(cors());
-// app.use(express.json());
+
+app.use(cors({origin, methods: ['GET', 'POST', 'OPTIONS', 'PATCH', 'PUT', 'DELETE'],
+    allowedHeaders: '*', 
+    credentials: true 
+}))
 app.use(express.json({ limit: "100mb" }));
 app.use(express.urlencoded({ limit: "100mb", extended: true }));
 
