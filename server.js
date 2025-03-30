@@ -44,46 +44,13 @@ app.use(
 
 app.options("*", cors());
 
-app.use(express.json({ limit: "100mb" }));
-app.use(express.urlencoded({ limit: "100mb", extended: true }));
-
 async function startServer() {
   try {
     await mongoose.connect(mongoURI);
     await initConnection();
     console.log("MongoDB connected (Mongoose)");
-
-    // const mongoClient = new MongoClient(mongoURI);
-    // await mongoClient.connect();
-    // const db = mongoClient.db();
-    // console.log("MongoClient connected");
-
-    // const multer = require('multer');
-
-    // const storage = new GridFsStorage({
-    //   url: mongoURI,
-    //   options: { useNewUrlParser: true, useUnifiedTopology: true },
-    //   file: (req, file) => {
-    //     return {
-    //       filename: `${Date.now()}-${file.originalname}`,
-    //       bucketName: 'uploads',
-    //       metadata: {
-    //         fieldName: file.fieldname,
-    //         originalname: file.originalname
-    //       }
-    //     };
-    //   }
-    // });
-
-    // const upload = multer({ storage , limits: { fileSize: 100 * 1024 * 1024 } });
-
-    // //  Attach to req
-    // app.use((req, res, next) => {
-    //   req.upload = upload;
-    //   next();
-    // });
-
-    // Mount routes
+    app.use(express.json({ limit: "100mb" }));
+    app.use(express.urlencoded({ limit: "100mb", extended: true }));
     app.use("/api", formRoutes);
     app.use("/api/payment", paymentRoutes);
     app.use("/api", receiptRoutes);
