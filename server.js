@@ -13,19 +13,19 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const receiptRoutes = require("./routes/receiptRoutes");
 const gridFsRoutes = require("./routes/gridRoutes");
 const downloadRoutes = require("./routes/downloadRoutes");
-const adminAuth = require("./routes/adminAuth")
+const adminAuth = require("./routes/adminAuth");
+const { default: products } = require("razorpay/dist/types/products");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/bnrc_registration";
 
-// Middleware
-const origin = process.env.NODE_ENV=== 'production' ? "https://forms.demorgia.com" : "http://localhost:3000";
-
-app.use(cors({origin, methods: ['GET', 'POST', 'OPTIONS', 'PATCH', 'PUT', 'DELETE'],
-    allowedHeaders: '*', 
-    credentials: true 
-}))
+  
+if(process.env.NODE_ENV != 'production' ) {
+  app.use(cors({
+    origin: 'http://localhost:3000'
+  }))
+}
 app.use(express.json({ limit: "100mb" }));
 app.use(express.urlencoded({ limit: "100mb", extended: true }));
 
