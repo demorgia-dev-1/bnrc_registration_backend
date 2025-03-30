@@ -14,7 +14,7 @@ const receiptRoutes = require("./routes/receiptRoutes");
 const gridFsRoutes = require("./routes/gridRoutes");
 const downloadRoutes = require("./routes/downloadRoutes");
 const adminAuth = require("./routes/adminAuth");
-const { default: products } = require("razorpay/dist/types/products");
+// const { default: products } = require("razorpay/dist/types/products");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -29,8 +29,6 @@ if(process.env.NODE_ENV != 'production' ) {
 app.use(express.json({ limit: "100mb" }));
 app.use(express.urlencoded({ limit: "100mb", extended: true }));
 
-// app.use(express.urlencoded({ extended: true }));
-   console.log("origin", origin)
 
 async function startServer() {
   try {
