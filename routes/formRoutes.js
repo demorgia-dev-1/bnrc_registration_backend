@@ -4,11 +4,9 @@ const Submission = require("../models/Submission");
 const Razorpay = require("razorpay");
 const path = require("path");
 const router = express.Router();
-const connectStorage = require("../middlewares/upload");
+const { upload, uploadToGridFS } = require("../middlewares/upload");
 const mongoose = require("mongoose");
-const authenticateToken = require("../middlewares/authentication")
-const util = require("util");
-
+const authenticateToken = require("../middlewares/authentication");
 
 const generatePlaceholder = (field) => {
   switch (field.type) {
@@ -51,7 +49,7 @@ router.post("/check-aadhaar", async (req, res) => {
         { "responses.aadhaar": aadhaar },
         { "responses.aadhar": aadhaar },
         { "responses.adhar": aadhaar },
-      ]
+      ],
     });
 
     if (existing) return res.json({ exists: true });
@@ -72,8 +70,8 @@ router.post("/check-email", async (req, res) => {
       $or: [
         { "responses.email": email },
         { "responses.Email": email },
-        { "responses.e_mail": email }
-      ]
+        { "responses.e_mail": email },
+      ],
     });
 
     if (existing) {
@@ -87,36 +85,41 @@ router.post("/check-email", async (req, res) => {
   }
 });
 
-
 router.post(
   "/submit-form/:formId",
+  upload.array("files", 100), // Limit to 10 files
   express.json({ limit: "100mb" }),
   express.urlencoded({ limit: "100mb", extended: true }),
   async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
-     const upload = await connectStorage() 
-
 
     try {
-      await new Promise((resolve, reject) => {
-        upload.array("files", 100)(req, res, (err) => {
-          if (err) return reject(err);
-          resolve();
-        });
-      });
-      
-
       const { formId } = req.params;
       const responses = JSON.parse(req.body.responses || "{}");
+      console.log("responses", responses);
+      console.log("req.files", req.files);
 
-      const uploadedFiles = req.files?.map((file) => ({
-        filename: file.filename,
-        fileId: file?.id || file?.id,
-        fieldName: file.fieldname,
-        originalName: file.originalname,
-      })) || [];
+      // Process the files by uploading them to GridFS
+      const uploadedFiles = [];
+      for (const file of req.files) {
+        console.log(`Starting to process file: ${file.originalname}`);
+        const gridFSFile = await uploadToGridFS(file);
+        console.log(
+          `Completed processing: ${gridFSFile.filename}, ID: ${gridFSFile.id}`
+        );
 
+        uploadedFiles.push({
+          filename: gridFSFile.filename,
+          fileId: gridFSFile.id.toString(),
+          fieldName: gridFSFile.fieldName || file.fieldname, // Try both options
+          originalName: gridFSFile.originalname,
+        });
+        console.log(
+          `Added file to uploadedFiles array, count: ${uploadedFiles.length}`
+        );
+      }
+      // Fetch the form document within the transaction
       const form = await Form.findById(formId).session(session);
       if (!form) {
         await session.abortTransaction();
@@ -143,7 +146,9 @@ router.post(
       await session.abortTransaction();
       session.endSession();
       console.error("Error submitting form:", error);
-      res.status(500).json({ message: "Internal Server Error", error });
+      res
+        .status(500)
+        .json({ message: "Internal Server Error", error: error.toString() });
     }
   }
 );
