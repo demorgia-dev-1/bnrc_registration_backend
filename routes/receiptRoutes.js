@@ -38,7 +38,6 @@ router.get("/receipt/:submissionId", async (req, res) => {
 
     doc.moveDown();
 
-    // Show uploaded image files
     if (submission.uploadedFiles && submission.uploadedFiles.length > 0) {
       doc.addPage().fontSize(16).text("Uploaded Photos", { underline: true }).moveDown();
 
@@ -46,7 +45,6 @@ router.get("/receipt/:submissionId", async (req, res) => {
         const fileUrl = `http://localhost:5000/api/file/${file.filename}`;
 
         try {
-          // Fetch image as buffer
           const imageRes = await axios.get(fileUrl, { responseType: "arraybuffer" });
           const imgBuffer = Buffer.from(imageRes.data, "binary");
 

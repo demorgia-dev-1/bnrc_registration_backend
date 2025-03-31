@@ -14,7 +14,6 @@ const receiptRoutes = require("./routes/receiptRoutes");
 const gridFsRoutes = require("./routes/gridRoutes");
 const downloadRoutes = require("./routes/downloadRoutes");
 const adminAuth = require("./routes/adminAuth");
-// const { default: products } = require("razorpay/dist/types/products");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -24,7 +23,6 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
     ? ['https://forms.demorgia.com']
     : ['http://localhost:3000'];
 
-// CORS configuration
 app.use(cors({
     origin: function (origin, callback) {
         if (!origin || allowedOrigins.includes(origin)) {
@@ -74,15 +72,11 @@ async function startServer() {
 
     const upload = multer({ storage , limits: { fileSize: 100 * 1024 * 1024 } });
 
-
-
-    //  Attach to req
     app.use((req, res, next) => {
       req.upload = upload;
       next();
     });
 
-    // Mount routes
     app.use("/api", formRoutes);
     app.use("/api/payment", paymentRoutes);
     app.use("/api", receiptRoutes);

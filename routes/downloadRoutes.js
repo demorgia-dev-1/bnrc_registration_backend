@@ -10,7 +10,6 @@ const authenticateToken = require("../middlewares/authentication");
 
 const router = express.Router();
 
-//  Route: Download All Forms in Excel
 router.get("/forms-excel", authenticateToken, async (req, res) => {
   try {
     const forms = await Form.find();
@@ -18,7 +17,6 @@ router.get("/forms-excel", authenticateToken, async (req, res) => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Forms");
 
-    // Collect all unique field labels across all forms
     const allFieldLabels = new Set();
     forms.forEach((form) => {
       form.fields.forEach((field) => allFieldLabels.add(field.label));
@@ -26,7 +24,6 @@ router.get("/forms-excel", authenticateToken, async (req, res) => {
 
     const fieldColumns = Array.from(allFieldLabels);
 
-    // Header row
     worksheet.addRow([
       "Form ID",
       "Form Name",
@@ -38,11 +35,10 @@ router.get("/forms-excel", authenticateToken, async (req, res) => {
       ...fieldColumns,
     ]);
 
-    // Data rows
     forms.forEach((form) => {
       const fieldMap = {};
       form.fields.forEach((field) => {
-        fieldMap[field.label] = "Yes"; // You can put "Yes", "Present", or just the field label
+        fieldMap[field.label] = "Yes";
       });
 
       const row = [
@@ -82,12 +78,13 @@ router.get("/submissions-excel", authenticateToken, async (req, res) => {
 
     const allFields = new Set();
     submissions.forEach((sub) => {
-      Object.keys(sub.responses).forEach((key) => allFields.add(key));
+      if (sub.responses) {
+        Object.keys(sub.responses).forEach((key) => allFields.add(key));
+      }
     });
 
     const responseFields = Array.from(allFields);
 
-    // Header
     worksheet.addRow([
       "Submission ID",
       "Form Name",
@@ -96,12 +93,7 @@ router.get("/submissions-excel", authenticateToken, async (req, res) => {
       "Image File Name",
     ]);
 
-    const db = mongoose.connection.db;
-    const bucket = new GridFSBucket(db, { bucketName: "uploads" });
-
-    for (let [index, sub] of submissions.entries()) {
-      const rowIndex = index + 2;
-
+    for (let sub of submissions) {
       const file = sub.uploadedFiles?.[0];
 
       const fileFieldName =
@@ -114,69 +106,15 @@ router.get("/submissions-excel", authenticateToken, async (req, res) => {
 
       const fileName = `${fileFieldName} (${originalFileName})`;
 
-      // Add submission row
       worksheet.addRow([
         sub._id.toString(),
         sub.form?.formName || "N/A",
-        ...responseFields.map((key) => sub.responses[key] || ""),
+        ...responseFields.map((key) => sub.responses?.[key] || ""),
         sub.paymentStatus || "Pending",
         fileName,
       ]);
-
-      // Add submission row
-      worksheet.addRow([
-        sub._id.toString(),
-        sub.form?.formName || "N/A",
-        ...responseFields.map((key) => sub.responses[key] || ""),
-        sub.paymentStatus || "Pending",
-        fileName,
-      ]);
-
-      try {
-        if (!file || !file.fileId) continue;
-
-        const { ObjectId } = require("mongodb");
-        const fileId =
-          typeof file.fileId === "string"
-            ? new ObjectId(file.fileId)
-            : file.fileId;
-
-        const downloadStream = bucket.openDownloadStream(fileId);
-        const buffer = await new Promise((resolve, reject) => {
-          streamToBuffer(downloadStream, (err, buf) => {
-            if (err) return reject(err);
-            resolve(buf);
-          });
-        });
-
-        const ext = (file.metadata?.originalname || file.filename || "jpg")
-          .split(".")
-          .pop()
-          .toLowerCase();
-
-        if (!["jpg", "jpeg", "png"].includes(ext)) {
-          console.warn(`Skipping non-image file (${ext})`);
-          continue;
-        }
-
-        const imageId = workbook.addImage({
-          buffer,
-          extension: ext,
-        });
-
-        worksheet.addImage(imageId, {
-          tl: { col: responseFields.length + 5, row: rowIndex - 1 },
-          ext: { width: 100, height: 100 },
-        });
-      } catch (imgErr) {
-        console.error(
-          `Error adding image for submission ${sub._id}:`,
-          imgErr.message
-        );
-      }
     }
 
-    // Only write workbook after all rows are processed
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -190,7 +128,7 @@ router.get("/submissions-excel", authenticateToken, async (req, res) => {
     res.end();
   } catch (error) {
     console.error("Error generating submissions Excel:", error);
-    res.status(500).send("Error generating Excel with images");
+    res.status(500).send("Error generating Excel");
   }
 });
 

@@ -6,7 +6,6 @@ const fieldSchema = new mongoose.Schema({
   type: { type: String, required: true },         
   required: { type: Boolean, default: false },   
 
-  // Validation Rules
   minLength: { type: Number },                   
   maxLength: { type: Number },                     
   min: { type: Number },                          
@@ -15,7 +14,6 @@ const fieldSchema = new mongoose.Schema({
   dateMin: { type: Date },                        
   dateMax: { type: Date },                         
 
-  // For dropdown fields
   options: [{ type: String }]
 });
 
@@ -35,9 +33,6 @@ const formSchema = new mongoose.Schema({
   fields: [fieldSchema]                     
 }, { timestamps: true });
 
-
-
-// Submission Schema
 const submissionSchema = new mongoose.Schema({
   form: { type: mongoose.Schema.Types.ObjectId, ref: "Form", required: true },
   responses: { type: Map, of: mongoose.Schema.Types.Mixed, required: true },

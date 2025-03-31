@@ -7,19 +7,16 @@ const mongoose = require("mongoose");
 
 const router = express.Router();
 
-// Razorpay instance
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-// Create order
 router.post("/create-order/:submissionId", async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    // const { amount } = req.body;
 
     const submission = await Submission.findById(
       req.params.submissionId
@@ -74,56 +71,6 @@ router.post("/create-order/:submissionId", async (req, res) => {
   }
 });
 
-// router.post("/webhook", express.json(), async (req, res) => {
-//   const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
-//   const signature = req.headers["x-razorpay-signature"];
-
-//   try {
-//     const hash = crypto
-//       .createHmac("sha256", secret)
-//       .update(JSON.stringify(req.body))
-//       .digest("hex");
-
-//     console.log("hash", hash);
-//     console.log(req.body);
-
-//     if (hash === signature) {
-//       const event = req.body;
-
-//       if (event.event === "payment.captured") {
-//         const payment = event.payload.payment.entity;
-
-//         const orderId = payment.order_id;
-//         const paymentId = payment.id;
-//         console.log("order id", orderId);
-//         console.log("payment id", paymentId);
-
-//         const submission = await Submission.findOne({
-//           "paymentDetails.order_id": orderId,
-//         });
-
-//         if (submission) {
-//           submission.paymentStatus = "Completed";
-//           submission.paymentDetails.payment_id = paymentId;
-//           await submission.save();
-//         }
-//         else {
-//           submission.paymentStatus = "pending";
-//           submission.paymentDetails.payment_id = paymentId
-//           await submission.save()
-//         }
-//       }
-
-//       return res.status(200).json({ status: "ok" });
-//     } else {
-//       return res.status(400).json({ status: "Invalid signature" });
-//     }
-//   } catch (err) {
-//     console.error("Webhook processing failed:", err);
-//     return res.status(500).json({ status: "Webhook error" });
-//   }
-// });
-
 router.post("/webhook", express.json(), async (req, res) => {
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
   const signature = req.headers["x-razorpay-signature"];
@@ -149,7 +96,6 @@ router.post("/webhook", express.json(), async (req, res) => {
         return res.status(404).json({ message: "Submission not found" });
       }
 
-      // Map Razorpay event to payment status
       switch (event.event) {
         case "payment.captured":
           submission.paymentStatus = "Completed";

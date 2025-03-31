@@ -99,12 +99,6 @@ router.post(
 
 
     try {
-      // // Convert Multer's callback-based function to a Promise
-      // const uploadMiddleware = util.promisify(upload.array("files", 100));
-
-      // // Wait for files to be uploaded before proceeding
-      // await uploadMiddleware(req, res);
-
       await new Promise((resolve, reject) => {
         upload.array("files", 100)(req, res, (err) => {
           if (err) return reject(err);
@@ -114,24 +108,21 @@ router.post(
       
 
       const { formId } = req.params;
-      const responses = JSON.parse(req.body.responses || "{}"); // Ensure responses are always valid JSON
+      const responses = JSON.parse(req.body.responses || "{}");
 
-      // Ensure files were uploaded successfully
       const uploadedFiles = req.files?.map((file) => ({
         filename: file.filename,
-        fileId: file?.id || file?.id, // Ensure file has an ID
+        fileId: file?.id || file?.id,
         fieldName: file.fieldname,
         originalName: file.originalname,
       })) || [];
 
-      // Fetch the form document within the transaction
       const form = await Form.findById(formId).session(session);
       if (!form) {
         await session.abortTransaction();
         return res.status(404).json({ message: "Form not found" });
       }
 
-      // Create a new submission record
       const submission = new Submission({
         form: formId,
         responses,
@@ -140,7 +131,6 @@ router.post(
 
       await submission.save({ session });
 
-      // Commit the transaction
       await session.commitTransaction();
       session.endSession();
 
@@ -170,7 +160,6 @@ router.get("/forms/:id", async (req, res) => {
   }
 });
 
-// Extend form end date
 router.put("/forms/:formId/extend", authenticateToken, async (req, res) => {
   const { formId } = req.params;
   const { newEndDate } = req.body;
@@ -198,7 +187,6 @@ router.put("/forms/:formId/extend", authenticateToken, async (req, res) => {
   }
 });
 
-// Create new form
 router.post("/create-form", authenticateToken, async (req, res) => {
   try {
     const {
